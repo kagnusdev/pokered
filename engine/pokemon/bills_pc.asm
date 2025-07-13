@@ -438,6 +438,7 @@ DisplayDepositWithdrawMenu:
 	ld a, BOX_DATA
 .next2
 	ld [wMonDataLocation], a
+	; predef StatusScreenManager
 	predef StatusScreen
 	predef StatusScreen2
 	call LoadScreenTilesFromBuffer1
