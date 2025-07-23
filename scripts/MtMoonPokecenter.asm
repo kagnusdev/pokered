@@ -1,4 +1,7 @@
 MtMoonPokecenter_Script:
+	lb bc, FLAG_SET, FLYLOC_ROUTE_4_CENTER
+	ld hl, wTownVisitedFlag
+	predef FlagActionPredef
 	call Serial_TryEstablishingExternallyClockedConnection
 	jp EnableAutoTextBoxDrawing
 

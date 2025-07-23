@@ -1,4 +1,7 @@
 RockTunnelPokecenter_Script:
+	lb bc, FLAG_SET, FLYLOC_ROUTE_10_CENTER
+	ld hl, wTownVisitedFlag
+	predef FlagActionPredef
 	call Serial_TryEstablishingExternallyClockedConnection
 	jp EnableAutoTextBoxDrawing
 
