@@ -28,20 +28,26 @@ _OaksLabThoseArePokeBallsText::
 _OaksLabYouWantCharmanderText::
 	text "So! You want the"
 	line "fire #MON,"
-	cont "CHARMANDER?"
-	done
+	cont "@"
+	text_ram wNameBuffer
+	text "?@"
+	text_end
 
 _OaksLabYouWantSquirtleText::
 	text "So! You want the"
 	line "water #MON,"
-	cont "SQUIRTLE?"
-	done
+	cont "@"
+	text_ram wNameBuffer
+	text "?@"
+	text_end
 
 _OaksLabYouWantBulbasaurText::
 	text "So! You want the"
 	line "plant #MON,"
-	cont "BULBASAUR?"
-	done
+	cont "@"
+	text_ram wNameBuffer
+	text "?@"
+	text_end
 
 _OaksLabMonEnergeticText::
 	text "This #MON is"
