@@ -899,8 +899,6 @@ OaksLabMonChoiceMenu:
 	jr nz, OaksLabMonChoiceEnd
 	ld a, [wCurPartySpecies]
 	ld [wPlayerStarter], a
-	ld [wNamedObjectIndex], a
-	call GetMonName
 	ld a, [wSpriteIndex]
 	cp OAKSLAB_CHARMANDER_POKE_BALL
 	jr nz, .not_charmander
