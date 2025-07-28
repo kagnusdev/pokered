@@ -589,6 +589,7 @@ wFilteredBagItemsCount:: db
 ; the next simulated joypad state is at wSimulatedJoypadStatesEnd plus this value minus 1
 ; 0 if the joypad state is not being simulated
 wSimulatedJoypadStatesIndex:: db
+wFakePadAButtonPress::
 ; written to but nothing ever reads it
 wUnusedSimulatedJoypadStatesMask:: db
 ; written to but nothing ever reads it
@@ -971,6 +972,11 @@ wLearningMovesFromDayCare::
 ; the item that the AI used
 wAIItem:: db
 wUsedItemOnWhichPokemon:: db
+NEXTU
+	ds 24
+wLoadedMonExpToNextLevel:: ds 3
+wStatusScreenMonsCount:: db
+	; ds 2 ; still available
 ENDU
 
 ; sound ID during battle animations
@@ -1556,12 +1562,7 @@ wMoves:: ds NUM_MOVES
 
 wMoveNum:: db
 
-UNION
-; Reuse already used memory area
-wLoadedMonExpToNextLevel:: ds 3
-NEXTU
 wMovesString:: ds 56
-ENDU
 
 wUnusedCurMapTilesetCopy:: db
 

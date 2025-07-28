@@ -61,9 +61,6 @@ DrawHP_:
 	pop de
 	ret
 
-DEF NUM_STAT_PAGES = 2
-; DEF STAT_SCREEN_PAGE_MASK = %0111_1111
-
 StatusScreenManager:
 	ldh a, [hTileAnimations]
 	push af
@@ -93,6 +90,21 @@ StatusScreenManager:
 	call GBPalWhiteOut
 	jp ClearScreen
 
+StatusScreenManager_GetPage:
+	ld a, [wStatsMenuData]
+	and STAT_SCREEN_PAGE_MASK
+	ret
+
+; input: a: page to set
+; clobbers l to preserve non page bit(s)
+StatusScreenManager_SetPage:
+	ld l, a
+	ld a, [wStatsMenuData]
+	and STAT_SCREEN_FLAGS_MASK
+	or l
+	ld [wStatsMenuData], a
+	ret
+
 StatusScreenManager_Jumptable:
 	const_def
 	dw_const StatusScreenManager_WaitForInput, SSM_WAIT_FOR_INPUT
@@ -117,6 +129,20 @@ StatusScreenManager_Init:
 	call ClearScreen
 	call UpdateSprites
 	call LoadHpBarAndStatusTilePatterns
+	ld a, [wMonDataLocation]
+	and a
+	jr z, .fromParty
+	dec a
+	ld hl, wEnemyPartyCount
+	jr z, .gotCountLoc
+	dec a
+	ld hl, wBoxCount
+	jr z, .gotCountLoc
+.fromParty
+	ld hl, wPartyCount
+.gotCountLoc
+	ld a, [hl]
+	ld [wStatusScreenMonsCount], a
 	ld de, BattleHudTiles1  ; source
 	ld hl, vChars2 tile $6d ; dest
 	lb bc, BANK(BattleHudTiles1), 3
@@ -206,12 +232,12 @@ StatusScreenManager_WaitForInput:
 	ld a, [wWhichPokemon]
 	and a
 	jr nz, .noWrap
-	ld a, [wPartyCount]
+	ld a, [wStatusScreenMonsCount]
 .noWrap
 	dec a
 	jr .writeWhichMon
 .nextMon
-	ld a, [wPartyCount]
+	ld a, [wStatusScreenMonsCount]
 	ld b, a
 	ld a, [wWhichPokemon]
 	inc a
@@ -224,32 +250,33 @@ StatusScreenManager_WaitForInput:
 	ld a, [wMonDataLocation]
 	cp ENEMY_PARTY_DATA
 	jr z, .noSaveMenuItem
+	ld a, [wStatsMenuData]
+	and STAT_SCREEN_NO_SAVE_MENU_ITEM_MASK
+	jr nz, .noSaveMenuItem
 	ld a, h
 	ld [wPartyAndBillsPCSavedMenuItem], a
 .noSaveMenuItem
 	ld h, SSM_LOAD_MON
 	jp StatusScreenManager_UpdateJumptableIndex
 .nextPage
-	ld a, [wStatsMenuData]
+	call StatusScreenManager_GetPage
 	inc a
 	cp NUM_STAT_PAGES
 	ret z
-	ld [wStatsMenuData], a
-	jr .showPage
+	jr .setAndShowPage
 .prevPage
-	ld a, [wStatsMenuData]
+	call StatusScreenManager_GetPage
 	and a
 	ret z
 	dec a
-	ld [wStatsMenuData], a
-.showPage
+.setAndShowPage
+	call StatusScreenManager_SetPage
 	ld h, SSM_SHOW_PAGE
 	jp StatusScreenManager_UpdateJumptableIndex
 
 StatusScreenManager_ShowPage:
+	call StatusScreenManager_GetPage
 	ld hl, .pageFuncs
-	ld a, [wStatsMenuData]
-	; and STAT_SCREEN_PAGE_MASK
 	call CallFunctionInTable
 	ld h, SSM_WAIT_FOR_INPUT
 	jp StatusScreenManager_UpdateJumptableIndex
