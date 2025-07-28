@@ -595,6 +595,8 @@ StatsText:
 StatusScreenManager_MovesPage:
 	xor a
 	ldh [hAutoBGTransferEnabled], a
+	ld b, SET_PAL_STATUS_SCREEN
+	call RunPaletteCommand
 	ld bc, NUM_MOVES + 1
 	ld hl, wMoves
 	call FillMemory
