@@ -1794,7 +1794,8 @@ AnimateRetreatingPlayerMon:
 	lb bc, 7, 7
 	jp ClearScreenArea
 
-; reads player's current mon's HP into wBattleMonHP
+; Copies player's current pokemon's current HP and status into the party
+; struct data so it stays after battle or switching
 ReadPlayerMonCurHPAndStatus:
 	ld a, [wPlayerMonNumber]
 	ld hl, wPartyMon1HP
@@ -3137,30 +3138,30 @@ PlayerCalcMoveDamage:
 	jp c, .moveHitTest ; SetDamageEffects moves (e.g. Seismic Toss and Super Fang) skip damage calculation
 	call CriticalHitTest
 	call HandleCounterMove
-	jr z, handleIfPlayerMoveMissed
+	jr z, HandleIfPlayerMoveMissed
 	call GetDamageVarsForPlayerAttack
 	call CalculateDamage
-	jp z, playerCheckIfFlyOrChargeEffect ; for moves with 0 BP, skip any further damage calculation and, for now, skip MoveHitTest
+	jp z, PlayerCheckIfFlyOrChargeEffect ; for moves with 0 BP, skip any further damage calculation and, for now, skip MoveHitTest
 	               ; for these moves, accuracy tests will only occur if they are called as part of the effect itself
 	call AdjustDamageForMoveType
 	call RandomizeDamage
 .moveHitTest
 	call MoveHitTest
-handleIfPlayerMoveMissed:
+HandleIfPlayerMoveMissed:
 	ld a, [wMoveMissed]
 	and a
-	jr z, getPlayerAnimationType
+	jr z, GetPlayerAnimationType
 	ld a, [wPlayerMoveEffect]
 	sub EXPLODE_EFFECT
-	jr z, playPlayerMoveAnimation ; don't play any animation if the move missed, unless it was EXPLODE_EFFECT
-	jr playerCheckIfFlyOrChargeEffect
-getPlayerAnimationType:
+	jr z, PlayPlayerMoveAnimation ; don't play any animation if the move missed, unless it was EXPLODE_EFFECT
+	jr PlayerCheckIfFlyOrChargeEffect
+GetPlayerAnimationType:
 	ld a, [wPlayerMoveEffect]
 	and a
 	ld a, ANIMATIONTYPE_BLINK_ENEMY_MON_SPRITE ; move has no effect other than dealing damage
-	jr z, playPlayerMoveAnimation
+	jr z, PlayPlayerMoveAnimation
 	ld a, ANIMATIONTYPE_SHAKE_SCREEN_HORIZONTALLY_LIGHT ; move has effect
-playPlayerMoveAnimation:
+PlayPlayerMoveAnimation:
 	push af
 	ld a, [wPlayerBattleStatus2]
 	bit HAS_SUBSTITUTE_UP, a
@@ -3179,7 +3180,7 @@ playPlayerMoveAnimation:
 	ld b, BANK(ReshowSubstituteAnim)
 	call nz, Bankswitch
 	jr MirrorMoveCheck
-playerCheckIfFlyOrChargeEffect:
+PlayerCheckIfFlyOrChargeEffect:
 	ld c, 30
 	call DelayFrames
 	ld a, [wPlayerMoveEffect]
@@ -3246,7 +3247,7 @@ MirrorMoveCheck:
 	ld a, [wPlayerNumAttacksLeft]
 	dec a
 	ld [wPlayerNumAttacksLeft], a
-	jp nz, getPlayerAnimationType ; for multi-hit moves, apply attack until PlayerNumAttacksLeft hits 0 or the enemy faints.
+	jp nz, GetPlayerAnimationType ; for multi-hit moves, apply attack until PlayerNumAttacksLeft hits 0 or the enemy faints.
 	                             ; damage calculation and accuracy tests only happen for the first hit
 	res ATTACKING_MULTIPLE_TIMES, [hl] ; clear attacking multiple times status when all attacks are over
 	ld hl, MultiHitText
@@ -3523,7 +3524,7 @@ CheckPlayerStatusConditions:
 	ld [hl], a
 	ld a, BIDE
 	ld [wPlayerMoveNum], a
-	ld hl, handleIfPlayerMoveMissed ; skip damage calculation, DecrementPP and MoveHitTest
+	ld hl, HandleIfPlayerMoveMissed ; skip damage calculation, DecrementPP and MoveHitTest
 	jp .returnToHL
 
 .ThrashingAboutCheck
@@ -3557,7 +3558,7 @@ CheckPlayerStatusConditions:
 	ld a, [wPlayerNumAttacksLeft]
 	dec a ; did multi-turn move end?
 	ld [wPlayerNumAttacksLeft], a
-	ld hl, getPlayerAnimationType ; if it didn't, skip damage calculation (deal damage equal to last hit),
+	ld hl, GetPlayerAnimationType ; if it didn't, skip damage calculation (deal damage equal to last hit),
 	                ; DecrementPP and MoveHitTest
 	jp nz, .returnToHL
 	jp .returnToHL
@@ -4159,7 +4160,7 @@ IgnoredOrdersText:
 GetDamageVarsForPlayerAttack:
 	xor a
 	ld hl, wDamage ; damage to eventually inflict, initialise to zero
-	ldi [hl], a
+	ld [hli], a
 	ld [hl], a
 	ld hl, wPlayerMovePower
 	ld a, [hli]
@@ -4465,8 +4466,8 @@ CalculateDamage:
 
 	xor a
 	ld hl, hDividend
-	ldi [hl], a
-	ldi [hl], a
+	ld [hli], a
+	ld [hli], a
 	ld [hl], a
 
 ; Multiply level by 2
@@ -4479,11 +4480,11 @@ CalculateDamage:
 	pop af
 .nc
 	inc hl
-	ldi [hl], a
+	ld [hli], a
 
 ; Divide by 5
 	ld a, 5
-	ldd [hl], a
+	ld [hld], a
 	push bc
 	ld b, 4
 	call Divide
@@ -4722,7 +4723,7 @@ HandleCounterMove:
 ; if it did damage, double it
 	ld a, [hl]
 	add a
-	ldd [hl], a
+	ld [hld], a
 	ld a, [hl]
 	adc a
 	ld [hl], a
@@ -5073,7 +5074,7 @@ HandleBuildingRage:
 	call StatModifierUpEffect ; stat modifier raising function
 	pop hl
 	xor a
-	ldd [hl], a ; null move effect
+	ld [hld], a ; null move effect
 	ld a, RAGE
 	ld [hl], a ; restore the target pokemon's move number to Rage
 	ldh a, [hWhoseTurn]
@@ -5567,7 +5568,7 @@ RandomizeDamage:
 .loop
 	call BattleRandom
 	rrca
-	cp 217
+	cp 85 percent + 1
 	jr c, .loop
 	ldh [hMultiplier], a
 	call Multiply ; multiply damage by the random number, which is in the range [217, 255]
@@ -5660,7 +5661,7 @@ EnemyCalcMoveDamage:
 	jp c, EnemyMoveHitTest
 	call CriticalHitTest
 	call HandleCounterMove
-	jr z, handleIfEnemyMoveMissed
+	jr z, HandleIfEnemyMoveMissed
 	call SwapPlayerAndEnemyLevels
 	call GetDamageVarsForEnemyAttack
 	call SwapPlayerAndEnemyLevels
@@ -5671,13 +5672,13 @@ EnemyCalcMoveDamage:
 
 EnemyMoveHitTest:
 	call MoveHitTest
-handleIfEnemyMoveMissed:
+HandleIfEnemyMoveMissed:
 	ld a, [wMoveMissed]
 	and a
 	jr z, .moveDidNotMiss
 	ld a, [wEnemyMoveEffect]
 	cp EXPLODE_EFFECT
-	jr z, handleExplosionMiss
+	jr z, HandleExplosionMiss
 	jr EnemyCheckIfFlyOrChargeEffect
 .moveDidNotMiss
 	call SwapPlayerAndEnemyLevels
@@ -5686,13 +5687,13 @@ GetEnemyAnimationType:
 	ld a, [wEnemyMoveEffect]
 	and a
 	ld a, ANIMATIONTYPE_SHAKE_SCREEN_VERTICALLY
-	jr z, playEnemyMoveAnimation
+	jr z, PlayEnemyMoveAnimation
 	ld a, ANIMATIONTYPE_SHAKE_SCREEN_HORIZONTALLY_HEAVY
-	jr playEnemyMoveAnimation
-handleExplosionMiss:
+	jr PlayEnemyMoveAnimation
+HandleExplosionMiss:
 	call SwapPlayerAndEnemyLevels
 	xor a
-playEnemyMoveAnimation:
+PlayEnemyMoveAnimation:
 	push af
 	ld a, [wEnemyBattleStatus2]
 	bit HAS_SUBSTITUTE_UP, a ; does mon have a substitute?
@@ -6031,7 +6032,7 @@ CheckEnemyStatusConditions:
 	ld a, BIDE
 	ld [wEnemyMoveNum], a
 	call SwapPlayerAndEnemyLevels
-	ld hl, handleIfEnemyMoveMissed ; skip damage calculation, DecrementPP and MoveHitTest
+	ld hl, HandleIfEnemyMoveMissed ; skip damage calculation, DecrementPP and MoveHitTest
 	jp .enemyReturnToHL
 .checkIfThrashingAbout
 	bit THRASHING_ABOUT, [hl] ; is mon using thrash or petal dance?
@@ -6407,7 +6408,7 @@ LoadPlayerBackPic:
 	jr nz, .loop
 	ld de, vBackPic
 	call InterlaceMergeSpriteBuffers
-	ld a, $a
+	ld a, RAMG_SRAM_ENABLE
 	ld [rRAMG], a
 	xor a
 	ld [rRAMB], a
@@ -6916,12 +6917,12 @@ _InitBattleCommon:
 	call PrintText
 	call SaveScreenTilesToBuffer1
 	call ClearScreen
-	ld a, $98
+	ld a, HIGH(vBGMap0)
 	ldh [hAutoBGTransferDest + 1], a
 	ld a, $1
 	ldh [hAutoBGTransferEnabled], a
 	call Delay3
-	ld a, $9c
+	ld a, HIGH(vBGMap1)
 	ldh [hAutoBGTransferDest + 1], a
 	call LoadScreenTilesFromBuffer1
 	hlcoord 9, 7

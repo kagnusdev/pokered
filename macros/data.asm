@@ -21,6 +21,7 @@ MACRO tmhm
 	ENDR
 	; set bits of bytes
 	REPT _NARG
+		ASSERT FATAL, STRFIND("\1", " ") == -1, "Invalid move: \1"
 		IF DEF(\1_TMNUM)
 			DEF n = (\1_TMNUM - 1) / 8
 			DEF i = (\1_TMNUM - 1) % 8
@@ -82,6 +83,18 @@ MACRO dab ; dwb address, bank
 		dwb \1, BANK(\1)
 		SHIFT
 	ENDR
+ENDM
+
+MACRO dname
+	IF _NARG == 2
+		DEF n = \2
+	ELSE
+		DEF n = NAME_LENGTH - 1
+	ENDC
+	ASSERT STRFIND(\1, "@") == -1, "String terminator \"@\" in name: \1"
+	ASSERT CHARLEN(\1) <= n, "Name longer than {d:n} characters: \1"
+	db \1
+	ds n - CHARLEN(\1), "@"
 ENDM
 
 MACRO with_each ; with_each FOO, BAR, "DEF BASE_? = 42"
