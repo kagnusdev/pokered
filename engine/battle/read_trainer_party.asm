@@ -161,7 +161,7 @@ ReadTrainer:
 	call GetNextTrainerDataByte
 	ld [de], a
 	inc de
-	cp "@"
+	cp '@'
 	jr nz, .nickCopyLoop
 
 .noNicks

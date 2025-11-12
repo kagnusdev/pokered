@@ -6280,7 +6280,7 @@ LoadEnemyMonData:
 	ld bc, wEnemyMon2Nick - wEnemyMon1Nick
 	call AddNTimes
 	ld a, [hl]
-	cp "@" ; use species name when mon has no nickname
+	cp '@' ; use species name when mon has no nickname
 	jr nz, .readyToLoadName
 .useSpeciesName
 	ld a, [wEnemyMonSpecies2]
